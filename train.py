@@ -27,7 +27,8 @@ def log_f(f, console=True):
 
 
 def binary_func_sep(model, feat, scale, label, UUID, ce_loss_record_0, ce_loss_record_1, ce_loss_record_2):
-    ce_loss = nn.BCELoss().cuda()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    ce_loss = nn.BCELoss().to(device)
     indx_0 = (UUID == 0).cpu()
     label = label.float()
     correct_0, correct_1, correct_2 = 0, 0, 0
@@ -41,7 +42,7 @@ def binary_func_sep(model, feat, scale, label, UUID, ce_loss_record_0, ce_loss_r
         correct_0 += predicted_0.cpu().eq(label[indx_0].cpu()).sum().item()
     else:
         logit_0 = []
-        cls_loss_0 = torch.zeros(1).cuda()
+        cls_loss_0 = torch.zeros(1).to(device)
 
     indx_1 = (UUID == 1).cpu()
     if indx_1.sum().item() > 0:
@@ -52,7 +53,7 @@ def binary_func_sep(model, feat, scale, label, UUID, ce_loss_record_0, ce_loss_r
         correct_1 += predicted_1.cpu().eq(label[indx_1].cpu()).sum().item()
     else:
         logit_1 = []
-        cls_loss_1 = torch.zeros(1).cuda()
+        cls_loss_1 = torch.zeros(1).to(device)
 
     indx_2 = (UUID == 2).cpu()
     if indx_2.sum().item() > 0:
@@ -63,7 +64,7 @@ def binary_func_sep(model, feat, scale, label, UUID, ce_loss_record_0, ce_loss_r
         correct_2 += predicted_2.cpu().eq(label[indx_2].cpu()).sum().item()
     else:
         logit_2 = []
-        cls_loss_2 = torch.zeros(1).cuda()
+        cls_loss_2 = torch.zeros(1).to(device)
 
     ce_loss_record_0.update(cls_loss_0.data.item(), len(logit_0))
     ce_loss_record_1.update(cls_loss_1.data.item(), len(logit_1))
@@ -97,20 +98,13 @@ def main(args):
 
     data_name_list_train, data_name_list_test = protocol_decoder(args.protocol)
 
-    train_set = get_datasets(args.data_dir, FaceDataset, train=True, protocol=args.protocol, img_size=args.img_size, map_size=32, transform=train_transform, debug_subset_size=args.debug_subset_size)
+    train_set = get_datasets(args.data_dir, FaceDataset, train=True, protocol=args.protocol, transform=train_transform)
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
-    test_set = get_datasets(args.data_dir, FaceDataset, train=False, protocol=args.protocol, img_size=args.img_size, map_size=32, transform=test_transform, debug_subset_size=args.debug_subset_size)
+    test_set = get_datasets(args.data_dir, FaceDataset, train=False, protocol=args.protocol, transform=test_transform)
     test_loader = DataLoader(test_set[data_name_list_test[0]], batch_size=args.batch_size, shuffle=False, num_workers=4)
 
-    live_cls_list = []
-    spoof_cls_list = []
-    for dataset in data_name_list_train:
-        live_cls_list += DEVICE_INFOS[dataset]['live']
-        spoof_cls_list += DEVICE_INFOS[dataset]['spoof']
     total_cls_num = 2
-
-    device2idx = {pattern: idx for idx, pattern in enumerate(spoof_cls_list)}
 
     max_iter = args.num_epochs*len(train_loader)
     # make dirs
@@ -131,8 +125,9 @@ def main(args):
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['state_dict'])
 
-    # model = nn.DataParallel(model).cuda()
-    model = model.cuda()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # model = nn.DataParallel(model).to(device)
+    model = model.to(device)
     # def optimizer
     optimizer = torch.optim.SGD(model.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
     # optimizer_linear = torch.optim.SGD(model.fc.parameters(), lr=args.base_lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -156,7 +151,7 @@ def main(args):
         "best_auc": -100
     }
 
-    ce_loss = nn.BCELoss().cuda()
+    ce_loss = nn.BCELoss().to(device)
 
 
     for epoch in range(args.start_epoch, args.num_epochs):
@@ -173,7 +168,7 @@ def main(args):
         for i, sample_batched in enumerate(train_loader):
             lr = optimizer.param_groups[0]['lr']
 
-            image_x_v1, image_x_v2, label, UUID = sample_batched["image_x_v1"].cuda(), sample_batched["image_x_v2"].cuda(), sample_batched["label"].cuda(), sample_batched["UUID"].cuda()
+            image_x_v1, image_x_v2, label, UUID = sample_batched["image_x_v1"].to(device), sample_batched["image_x_v2"].to(device), sample_batched["label"].to(device), sample_batched["UUID"].to(device)
 
             image_x = torch.cat([image_x_v1, image_x_v2])
             feat, scale = model(image_x, out_type='feat', scale=args.scale)
@@ -187,7 +182,7 @@ def main(args):
             if args.feat_loss == 'supcon':
                 feat_loss = supcon_loss(torch.cat([f1.unsqueeze(1), f2.unsqueeze(1)], dim=1), UUID * 10 + label, temperature=args.temperature)
             else:
-                feat_loss = torch.zeros(1).cuda()
+                feat_loss = torch.zeros(1).to(device)
 
             loss_all = cls_loss + args.feat_loss_weight * feat_loss
 
@@ -229,7 +224,7 @@ def main(args):
                 start_time = time.time()
                 scores_list = []
                 for i, sample_batched in enumerate(test_loader):
-                    image_x, live_label, UUID = sample_batched["image_x_v1"].cuda(), sample_batched["label"].cuda(), sample_batched["UUID"].cuda()
+                    image_x, live_label, UUID = sample_batched["image_x_v1"].to(device), sample_batched["label"].to(device), sample_batched["UUID"].to(device)
                     _, penul_feat, logit = model(image_x, out_type='all', scale=args.scale)
 
                     for i in range(len(logit)):
@@ -352,6 +347,7 @@ def str2bool(x):
 
 
 if __name__ == '__main__':
+    print("start...")
     args = parse_args()
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)

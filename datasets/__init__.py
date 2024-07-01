@@ -3,11 +3,11 @@ from utils import protocol_decoder
 import math
 
 
-def get_single_dataset(data_dir, FaceDataset, data_name="", train=True, label=None, transform=None, UUID=-1):
+def get_single_dataset(data_dir, FaceDataset, data_name="", train=True, transform=None, UUID=-1):
     if train:
-        data_set = FaceDataset(data_name, os.path.join(data_dir, data_name), split='train', label=label, transform=transform,  UUID=UUID)
+        data_set = FaceDataset(data_name, os.path.join(data_dir, data_name), split='train', transform=transform,  UUID=UUID)
     else:
-        data_set = FaceDataset(data_name, os.path.join(data_dir, data_name), split='test', label=label,
+        data_set = FaceDataset(data_name, os.path.join(data_dir, data_name), split='test',
                                       transform=transform, UUID=UUID)
     
     # print("Loading {}, number: {}".format(data_name, len(data_set)))
