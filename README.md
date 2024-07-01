@@ -25,19 +25,6 @@ Run `./preposess.py`.
 
 ### 3. Demo 
 
-Run `./train.py --protocol [O_C_I_to_M/O_M_I_to_C/O_C_M_to_I/I_C_M_to_O]`.
-
-## Citation
-
-If you use our codebase, please cite our work:
-
-```
-@article{sun2023safas,
-  title={Rethinking Domain Generalization for Face Anti-spoofing:
-Separability and Alignment},
-  author={Sun, Yiyou and Liu, Yaojie and Liu, Xiaoming and Li, Yixuan and Chu Wen-Sheng},
-  journal={CVPR},
-  year={2023}
-}
+Run `./train.py --protocol [A_B_C_to_D/A_B_D_to_C/A_C_D_to_B/B_C_D_to_A]`.
 ```
 
