@@ -11,7 +11,7 @@ import argparse
 
 from datasets.supcon_dataset import FaceDataset, DEVICE_INFOS
 
-from datasets import get_datasets, TwoCropTransform
+from datasets import get_datasets
 
 torch.backends.cudnn.benchmark = True
 
@@ -217,10 +217,7 @@ def main(args):
         scheduler.step()
 
         ############################ test ###########################
-        if args.protocol  == "I_C_M_to_O":
-            epoch_test = 5
-        else:
-            epoch_test = args.eval_preq
+        epoch_test = args.eval_preq
 
         if epoch % epoch_test == epoch_test-1:
 
@@ -309,7 +306,7 @@ def parse_args():
     # build dirs
     parser.add_argument('--data_dir', type=str, default="datasets/FAS", help='YOUR_Data_Dir')
     parser.add_argument('--result_path', type=str, default='./results', help='root result directory')
-    parser.add_argument('--protocol', type=str, default="O_C_I_to_M", help='O_C_I_to_M, O_M_I_to_C, O_C_M_to_I, I_C_M_to_O, O_to_O')
+    parser.add_argument('--protocol', type=str, default="A_B_C_to_D", help='A_B_D_to_C, A_C_D_to_B')
     # training settings
     parser.add_argument('--model_type', type=str, default="ResNet18_lgt", help='model_type')
     parser.add_argument('--eval_preq', type=int, default=1, help='batch size')
@@ -375,10 +372,6 @@ if __name__ == '__main__':
     args.summary = "\t".join([str(info) for info in info_list])
     print(args.result_name)
     print(args.summary)
-
-    if args.protocol == "I_C_M_to_O":
-        args.num_epochs *= 3
-        args.step_size *= 3
 
     if args.scale.lower() == 'none':
         args.scale = None

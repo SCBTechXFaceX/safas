@@ -29,30 +29,19 @@ def check_folder(log_dir):
 
 
 def protocol_decoder(protocol):
-    if protocol == "O_C_I_to_M":
-        data_name_list_train = ["OULU", "CASIA_MFSD", "Replay_attack"]
-        data_name_list_test = ["MSU_MFSD"]
-    if protocol == "O_C_to_M":
-        data_name_list_train = ["OULU", "CASIA_MFSD"]
-        data_name_list_test = ["MSU_MFSD"]
-    if protocol == "O_to_O":
-        data_name_list_train = ["OULU"]
-        data_name_list_test = ["OULU"]
-    elif protocol == "O_M_I_to_C":
-        data_name_list_train = ["OULU", "MSU_MFSD", "Replay_attack"]
-        data_name_list_test = ["CASIA_MFSD"]
-    elif protocol == "O_C_M_to_I":
-        data_name_list_train = ["OULU", "CASIA_MFSD", "MSU_MFSD"]
-        data_name_list_test = ["Replay_attack"]
-    elif protocol == "I_C_M_to_O":
-        data_name_list_train = ["MSU_MFSD", "CASIA_MFSD", "Replay_attack"]
-        data_name_list_test = ["OULU"]
-    elif protocol == "M_I_to_C":
-        data_name_list_train = ["MSU_MFSD", "Replay_attack"]
-        data_name_list_test = ["CASIA_MFSD"]
-    elif protocol == "M_I_to_O":
-        data_name_list_train = ["MSU_MFSD", "Replay_attack"]
-        data_name_list_test = ["OULU"]
+    if protocol == "A_B_C_to_D":
+        data_name_list_train = ["A", "B", "C"]
+        data_name_list_test = ["D"]
+    elif protocol == "A_B_D_to_C":
+        data_name_list_train = ["A", "B", "D"]
+        data_name_list_test = ["C"]
+    elif protocol == "A_C_D_to_B":
+        data_name_list_train = ["A", "C", "D"]
+        data_name_list_test = ["B"]
+    elif protocol == "B_C_D_to_A":
+        data_name_list_train = ["B", "C", "D"]
+        data_name_list_test = ["A"]
+        
     return data_name_list_train, data_name_list_test
 
 import torch
