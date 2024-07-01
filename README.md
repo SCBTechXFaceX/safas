@@ -18,7 +18,7 @@ but you can use conda with .yml
 
 ### 1. Dataset Preparation
 
-Download the OULU-NPU, CASIA-FASD, Idiap Replay-Attack, and MSU-MFSD datasets. Put datasets into the directory of `datasets/FAS`.
+Download the A, B, C, and D. Put datasets into the directory of `datasets/FAS`.
 
 ### 2. Prepocessing 
 
