@@ -126,6 +126,7 @@ def main(args):
         model.load_state_dict(ckpt['state_dict'])
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"using device: {device}")
     # model = nn.DataParallel(model).to(device)
     model = model.to(device)
     # def optimizer
