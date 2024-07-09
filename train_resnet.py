@@ -225,7 +225,7 @@ def main(args):
         if auc > max_auc:
             reset_count=0
             max_auc = auc
-            save_path = f"/results/resnet18"
+            save_path = os.path.expanduser("~/results/resnet18")
             os.makedirs(save_path, exist_ok=True)
             # Save model
             

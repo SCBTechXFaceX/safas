@@ -36,7 +36,7 @@ class FaceDataset(Dataset):
     
     def __getitem__(self, idx):
 
-        image_path = os.path.join(self.root_dir, self.df.iloc[idx]['file_path'])
+        image_path = os.path.join(self.root_dir, self.df.iloc[idx]['path'])
         
         if self.split == 'train':
             image_x = imread(image_path)
@@ -47,7 +47,7 @@ class FaceDataset(Dataset):
             image_x_view1 = self.transform(PIL.Image.fromarray(image_x))
             image_x_view2 = image_x_view1
             
-        if self.df.iloc[idx]['label'] == 'spoof':
+        if self.df.iloc[idx]['spoof_types'] == 'spoof' or self.df.iloc[idx]['spoof_types'] == 1:
             label = 1
         else:
             label = 0
