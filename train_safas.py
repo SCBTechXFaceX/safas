@@ -95,14 +95,19 @@ def main(args):
         transforms.ToTensor(),
         normalizer
     ])
+    
+    data_folder = os.listdir(args.data_dir)
+    data_name_list_train = []
+    for folder in data_folder:
+        if folder != args.target:
+            data_name_list_train = [folder]
+            break
 
-    data_name_list_train, data_name_list_test = protocol_decoder(args.protocol)
-
-    train_set = get_datasets(args.data_dir, FaceDataset, train=True, protocol=args.protocol, transform=train_transform)
+    train_set = get_datasets(args.data_dir, FaceDataset, train=True, target=args.target, transform=train_transform)
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
-    test_set = get_datasets(args.data_dir, FaceDataset, train=False, protocol=args.protocol, transform=test_transform)
-    test_loader = DataLoader(test_set[data_name_list_test[0]], batch_size=args.batch_size, shuffle=False, num_workers=4)
+    test_set = get_datasets(args.data_dir, FaceDataset, train=False, target=args.target, transform=test_transform)
+    test_loader = DataLoader(test_set[args.target], batch_size=args.batch_size, shuffle=False, num_workers=4)
 
     total_cls_num = 2
 
@@ -138,7 +143,7 @@ def main(args):
 
 
     if args.resume:
-        model_path = os.path.join(model_root_path, "{}_p{}_best.pth".format(args.model_type, args.protocol))
+        model_path = os.path.join(model_root_path, "{}_p_val_on_{}_best.pth".format(args.model_type, args.target))
         ckpt = torch.load(model_path)
         model.load_state_dict(ckpt['state_dict'])
         optimizer.load_state_dict(ckpt['optimizer'])
@@ -232,13 +237,13 @@ def main(args):
                         scores_list.append("{} {}\n".format(logit.squeeze()[i].item(), live_label[i].item()))
 
 
-            map_score_val_filename = os.path.join(score_path, "{}_score.txt".format(data_name_list_test[0]))
+            map_score_val_filename = os.path.join(score_path, "{}_score.txt".format(args.target))
             print("score: write test scores to {}".format(map_score_val_filename))
             with open(map_score_val_filename, 'w') as file:
                 file.writelines(scores_list)
 
             test_ACC, fpr, FRR, HTER, auc_test, test_err, tpr = performances_val(map_score_val_filename)
-            print("## {} score:".format(data_name_list_test[0]))
+            print("## {} score:".format(args.target))
             print("epoch:{:d}, test:  val_ACC={:.4f}, HTER={:.4f}, AUC={:.4f}, val_err={:.4f}, ACC={:.4f}, TPR={:.4f}".format(
                 epoch + 1, test_ACC, HTER, auc_test, test_err, test_ACC, tpr))
             print("test phase cost {:.4f}s".format(time.time() - start_time))
@@ -248,7 +253,7 @@ def main(args):
                 eva["best_HTER"] = HTER
                 eva["tpr95"] = tpr
                 eva["best_epoch"] = epoch+1
-                model_path = os.path.join(model_root_path, "{}_p{}_best.pth".format(args.model_type, args.protocol))
+                model_path = os.path.join(model_root_path, "{}_p{}_best.pth".format(args.model_type, args.target))
                 torch.save({
                     'epoch': epoch+1,
                     'state_dict':model.state_dict(),
@@ -261,7 +266,7 @@ def main(args):
 
             print("[Best result] epoch:{}, HTER={:.4f}, AUC={:.4f}".format(eva["best_epoch"],  eva["best_HTER"], eva["best_auc"]))
 
-            model_path = os.path.join(model_root_path, "{}_p{}_recent.pth".format(args.model_type, args.protocol))
+            model_path = os.path.join(model_root_path, "{}_p{}_recent.pth".format(args.model_type, args.target))
             torch.save({
                 'epoch': epoch+1,
                 'state_dict':model.state_dict(),
@@ -279,12 +284,12 @@ def main(args):
 
     HTERs, AUROCs, TPRs = [], [], []
     for epoch in last_n_epochs:
-        map_score_val_filename = os.path.join(score_root_path, "epoch_{}".format(epoch), "{}_score.txt".format(data_name_list_test[0]))
+        map_score_val_filename = os.path.join(score_root_path, "epoch_{}".format(epoch), "{}_score.txt".format(args.target))
         test_ACC, fpr, FRR, HTER, auc_test, test_err, tpr = performances_val(map_score_val_filename)
         HTERs.append(HTER)
         AUROCs.append(auc_test)
         TPRs.append(tpr)
-        print("## {} score:".format(data_name_list_test[0]))
+        print("## {} score:".format(args.target))
         print("epoch:{:d}, test:  val_ACC={:.4f}, HTER={:.4f}, AUC={:.4f}, val_err={:.4f}, ACC={:.4f}, TPR={:.4f}".format(
                 epoch + 1, test_ACC, HTER, auc_test, test_err, test_ACC, tpr))
 
@@ -302,7 +307,7 @@ def parse_args():
     # build dirs
     parser.add_argument('--data_dir', type=str, default="datasets/FAS", help='YOUR_Data_Dir')
     parser.add_argument('--result_path', type=str, default='./results', help='root result directory')
-    parser.add_argument('--protocol', type=str, default="A_B_C_to_D", help='A_B_D_to_C, A_C_D_to_B')
+    parser.add_argument('--target', type=str, default="A", help='MSU_MFSD, CASIA_FASD, OULU_NPU, ReplayAttack, SiW')
     # training settings
     parser.add_argument('--model_type', type=str, default="ResNet18_lgt", help='model_type')
     parser.add_argument('--eval_preq', type=int, default=1, help='batch size')
@@ -361,9 +366,9 @@ if __name__ == '__main__':
                        f"_smin({args.train_scale_min})_tscl({args.test_scale})_lr({args.base_lr})_alpha({args.alpha})_scale({args.scale})"+\
                        f"_floss({args.feat_loss})_flossw({args.feat_loss_weight})_tmp({args.temperature})_seed({args.seed})"
 
-    args.result_name = f"{args.protocol}_" + args.result_name_no_protocol
+    args.result_name = f"{args.target}_" + args.result_name_no_protocol
 
-    info_list = [args.protocol, pretrain_alias[args.pretrain], args.align, args.align_epoch, args.batch_size, args.train_rotation, args.train_scale_min,
+    info_list = [args.target, pretrain_alias[args.pretrain], args.align, args.align_epoch, args.batch_size, args.train_rotation, args.train_scale_min,
                  args.test_scale, args.base_lr, args.alpha, args.scale, args.feat_loss, args.feat_loss_weight, args.temperature, args.seed]
 
     args.summary = "\t".join([str(info) for info in info_list])

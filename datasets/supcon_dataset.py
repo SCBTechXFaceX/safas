@@ -22,13 +22,14 @@ torch.cuda.manual_seed(0)
 np.random.seed(0)
 
 class FaceDataset(Dataset):
-    def __init__(self, dataset_name, root_dir, split='train', transform=None, UUID=-1):
+    def __init__(self, dataset_name, root_dir, split='train', transform=None, UUID=-1, model_name='safas'):
         self.split = split
         self.dataset_name = dataset_name
         self.root_dir = root_dir
         self.transform = transform
         self.UUID = UUID
         self.df = pd.read_csv(os.path.join(root_dir, 'label.csv'))
+        self.safas = model_name
 
     def __len__(self):
         return len(self.df)
@@ -51,9 +52,14 @@ class FaceDataset(Dataset):
         else:
             label = 0
 
-        sample = {"image_x_v1": np.array(image_x_view1),
-                  "image_x_v2": np.array(image_x_view2),
-                  "label": label,
-                  "UUID": self.UUID}
-        return sample
+        if self.safas == 'safas':
+            sample = {"image_x_v1": np.array(image_x_view1),
+                    "image_x_v2": np.array(image_x_view2),
+                    "label": label,
+                    "UUID": self.UUID}
+            return sample
+        else:
+            return image_x_view1, label
+        
+        
 

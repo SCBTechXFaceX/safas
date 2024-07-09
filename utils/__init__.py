@@ -27,23 +27,6 @@ def check_folder(log_dir):
         os.makedirs(log_dir)
     return log_dir
 
-
-def protocol_decoder(protocol):
-    if protocol == "A_B_C_to_D":
-        data_name_list_train = ["A", "B", "C"]
-        data_name_list_test = ["D"]
-    elif protocol == "A_B_D_to_C":
-        data_name_list_train = ["A", "B", "D"]
-        data_name_list_test = ["C"]
-    elif protocol == "A_C_D_to_B":
-        data_name_list_train = ["A", "C", "D"]
-        data_name_list_test = ["B"]
-    elif protocol == "B_C_D_to_A":
-        data_name_list_train = ["B", "C", "D"]
-        data_name_list_test = ["A"]
-        
-    return data_name_list_train, data_name_list_test
-
 import torch
 from torchvision.transforms.transforms import _setup_size
 
