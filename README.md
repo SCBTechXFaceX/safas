@@ -26,4 +26,4 @@ Run `./preposess.py`.
 
 ### 3. Demo 
 
-Run `./train.py --protocol [A_B_C_to_D/A_B_D_to_C/A_C_D_to_B/B_C_D_to_A]`.
+Run `python train.py --target A`. target = validation dataset
