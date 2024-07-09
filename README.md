@@ -26,4 +26,4 @@ Run `./preposess.py`.
 
 ### 3. Demo 
 
-Run `python train.py --target A`. target = validation dataset
+Run `python train_safas.py --target A`. target = validation dataset
