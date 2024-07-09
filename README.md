@@ -22,7 +22,7 @@ Download the A, B, C, and D. Put datasets into the directory of `datasets/FAS`.
 
 ### 2. Prepocessing 
 
-Run `./preposess.py`.
+Run `python preposess.py --extend_crop 0.2 --min_img_size 128`.
 
 ### 3. Demo 
 
