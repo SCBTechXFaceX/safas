@@ -1,8 +1,4 @@
-# Rethinking Domain Generalization for Face Anti-spoofing: Separability and Alignment
-
-This is the source code for CVPR 2023 paper [Rethinking Domain Generalization for Face Anti-spoofing:
-Separability and Alignment](https://arxiv.org/abs/2303.13662) 
-by Yiyou Sun, Yaojie Liu, Xiaoming Liu, Yixuan Li and Wen-Sheng Chu.
+# This project is one stop service for Preprocess, Train, Test
 
 ## Preliminaries
 It is tested under Ubuntu Linux 20.04 and Python 3.8 environment, and requries some packages to be installed
