@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, DataLoader
 from utils import *
 from loss import supcon_loss
 from tqdm import tqdm
-
+from methods import *
 import time
 import numpy as np
 from torchvision import transforms, datasets
@@ -16,68 +16,6 @@ from datasets import get_datasets
 from sklearn.metrics import roc_auc_score, roc_curve
 
 torch.backends.cudnn.benchmark = True
-
-def compute_metrics(model, dataloader_test, criterion, device):
-    """
-    Compute HTER, AUC@ROC, APCER, and BPCER for the given model and test dataloader.
-    
-    Parameters:
-    model (torch.nn.Module): The trained model.
-    dataloader_test (torch.utils.data.DataLoader): DataLoader for the test dataset.
-    criterion (torch.nn.Module): Loss function.
-    device (torch.device): Device to run the computations on.
-    
-    Returns:
-    float: Test loss.
-    float: AUC@ROC score.
-    float: HTER score.
-    float: APCER.
-    float: BPCER.
-    """
-    
-    # Set model to evaluation mode
-    model.eval()
-    
-    test_loss = 0.0
-    all_labels = []
-    all_outputs = []
-    
-    with torch.no_grad():
-        progress_bar = tqdm(dataloader_test)
-        for inputs, labels in progress_bar:
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            # Get model outputs
-            outputs = model(inputs)
-            labels = labels.unsqueeze(1).float()
-            test_loss += criterion(outputs, labels).item()
-
-            # Store labels and outputs for metrics computation
-            all_labels.append(labels.cpu().numpy())
-            all_outputs.append(outputs.cpu().numpy())
-
-    all_labels = np.concatenate(all_labels)
-    all_outputs = np.concatenate(all_outputs)
-    
-    # Compute AUC@ROC
-    auc_roc = roc_auc_score(all_labels, all_outputs)
-    
-    # Compute ROC curve to determine optimal threshold for HTER, APCER, BPCER
-    fpr, tpr, thresholds = roc_curve(all_labels, all_outputs)
-    fnr = 1 - tpr
-    threshold_index = np.nanargmin(np.abs(fpr - fnr))
-    threshold = thresholds[threshold_index]
-
-    # Calculate APCER (spoof as bona fide error rate)
-    apcer = fpr[threshold_index]
-
-    # Calculate BPCER (bona fide as spoof error rate)
-    bpcer = fnr[threshold_index]
-
-    # Compute HTER (Half Total Error Rate)
-    hter = (apcer + bpcer) / 2
-
-    return test_loss / len(dataloader_test), auc_roc, hter, apcer, bpcer
 
 #test
 def log_f(f, console=True):
@@ -136,107 +74,10 @@ def binary_func_sep(model, feat, scale, label, UUID, ce_loss_record_0, ce_loss_r
     return (cls_loss_0 + cls_loss_1 + cls_loss_2) / 3, (correct_0, correct_1, correct_2, total_0, total_1, total_2)
 
 def main(args):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"using device: {device}")
-    
-    model = models.resnet18(pretrained=True)
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Sequential(
-        nn.Linear(num_ftrs, 1),
-        nn.Sigmoid()
-    )
-    model = model.to(device)
-    
-    if args.pretrain == 'imagenet':
-        normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    else:
-        normalizer = transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-
-    criterion = nn.BCELoss()
-
-    # if freeze use model.fc.parameters()
-    # if not freeze use model.parameters()
-    optimizer = optim.Adam(model.parameters(), lr=0.003) 
-    
-    max_auc = 0.
-    reset_count = 0
-    patience = 10
-    
-    train_transform_list = [
-        transforms.RandomResizedCrop(256, scale=(args.train_scale_min, 1.), ratio=(1., 1.)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        normalizer
-    ]
-
-    if args.train_rotation:
-        train_transform_list = [transforms.RandomRotation(degrees=(-180, 180))] + train_transform_list
-
-    train_transform = transforms.Compose(train_transform_list)
-
-    test_transform = transforms.Compose([
-        transforms.RandomResizedCrop(256, scale=(args.test_scale, args.test_scale), ratio=(1., 1.)),
-        transforms.ToTensor(),
-        normalizer
-    ])
-    
-    data_folder = os.listdir(args.data_dir)
-    data_name_list_train = []
-    for folder in data_folder:
-        if folder != args.target:
-            data_name_list_train = [folder]
-            break
-
-    train_set = get_datasets(args.data_dir, FaceDataset, train=True, target=args.target, transform=train_transform, model_name='resnet')
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=4)
-
-    test_set = get_datasets(args.data_dir, FaceDataset, train=False, target=args.target, transform=test_transform, model_name='resnet')
-    test_loader = DataLoader(test_set[args.target], batch_size=args.batch_size, shuffle=False, num_workers=4)
-    
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step_size, gamma=args.gamma)
-
-
-    for epoch in range(args.start_epoch, args.num_epochs):
-        model.train()
-        training_loss = 0.0
-        test_loss = 0.0
-        progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{args.num_epochs}')
-
-        for inputs, labels in progress_bar:
-            inputs, labels = inputs.to(device), labels.to(device)
-            
-            # Zero the parameter gradients
-            optimizer.zero_grad()
-            
-            # Forward pass
-            outputs = model(inputs)
-            
-            labels = labels.unsqueeze(1).float()
-            loss = criterion(outputs, labels)
-            
-            # Backward pass and optimization
-            loss.backward()
-            optimizer.step()
-            
-            training_loss += loss.item()
-    
-        test_loss, auc, hter, apcer, bpcer = compute_metrics(model, test_loader, criterion, device)  
-        print(f"Epoch [{epoch+1}/{args.num_epochs}]\n  Loss: {training_loss/len(train_loader):.5f}\n  Val Loss: {test_loss/len(test_loader):.5f}\n  Val AUC: {auc:.5f}\n  Val HTER: {hter:.5f}\n  Val APCER: {apcer:.5f}\n  Val BPCER: {bpcer:.5f}")
-        if auc > max_auc:
-            reset_count=0
-            max_auc = auc
-            save_path = os.path.expanduser("~/results/resnet18")
-            os.makedirs(save_path, exist_ok=True)
-            # Save model
-            
-            torch.save(model.state_dict(), save_path + f"/model.pth")
-            print(f"Best AUC: {auc}! save model at{save_path + '/model.pth'}")
-            
-        else:
-            reset_count+=1
-            if reset_count == patience:
-                print("Early stop!")
-                break
+    if args.method.startswith('resnet'):
+        train_resnet(args, model_size=args.method, lr=args.base_lr, freeze=args.freeze)
+    elif args.method == 'safas':
+        train_safas(args)
 
 
 def parse_args():
@@ -246,9 +87,11 @@ def parse_args():
     parser.add_argument('--result_path', type=str, default='./results', help='root result directory')
     parser.add_argument('--target', type=str, default="A", help='MSU_MFSD, CASIA_FASD, OULU_NPU, ReplayAttack, SiW')
     # training settings
+    parser.add_argument('--method', type=str, default="resnet18", help='method')
     parser.add_argument('--model_type', type=str, default="ResNet18_lgt", help='model_type')
     parser.add_argument('--eval_preq', type=int, default=1, help='batch size')
     parser.add_argument('--img_size', type=int, default=256, help='img size')
+    parser.add_argument('--freeze', type=bool, default=False, help='freeze layers without fc')
 
     parser.add_argument('--pretrain', type=str, default='imagenet', help='imagenet')
     parser.add_argument('--batch_size', type=int, default=96, help='batch size')

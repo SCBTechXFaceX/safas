@@ -68,7 +68,7 @@ if __name__ == '__main__':
     summary_text = ""
     for folder_target in folder_contents:
         df = pd.read_csv(os.path.join(folder_path, folder_target, 'label.csv'))
-        results = Parallel(n_jobs=-1)(delayed(process_image)(args, folder_path, folder_target, df.iloc[i, 0]) for i in tqdm(range(len(df)), desc="Processing images"))
+        results = Parallel(n_jobs=3)(delayed(process_image)(args, folder_path, folder_target, df.iloc[i, 0]) for i in tqdm(range(len(df)), desc="Processing images"))
 
         new_df = pd.DataFrame()
         image_found_number = sum(1 for result in results if result[0])

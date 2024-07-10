@@ -18,7 +18,6 @@ def get_datasets(data_dir, FaceDataset, train=True, target="1", transform=None, 
     for folder in data_folder:
         if folder != target:
             data_name_list_train = [folder]
-            break
     sum_n = 0
     if train:
         data_set_sum = get_single_dataset(data_dir, FaceDataset, data_name=data_name_list_train[0], train=True, transform=transform, UUID=0, model_name=model_name)
