@@ -88,4 +88,4 @@ Run `python preposess.py --extend_crop 0.2 --min_img_size 128`.
 
 ### 3. Training 
 
-Run `python train_safas.py --target A`. target = validation dataset
+Run `python train.py --method resnet18 --target msu_mfsd`. target = validation dataset
