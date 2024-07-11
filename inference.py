@@ -21,7 +21,7 @@ def test_resnet(args, model_size, model_path):
     
     model = model.to(device)
     
-    test_transform = transforms()['test']
+    test_transform = transforms_fuc()['test']
 
     test_set = get_datasets(args.data_dir, FaceDataset, train=False, target=args.target, transform=test_transform, model_name='resnet')
     test_loader = DataLoader(test_set[args.target], batch_size=args.batch_size, shuffle=False, num_workers=4)

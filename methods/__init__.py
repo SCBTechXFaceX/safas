@@ -15,7 +15,7 @@ from torchvision import datasets, models, transforms
 from datasets import get_datasets
 from sklearn.metrics import roc_auc_score, roc_curve
 
-def transforms():
+def transforms_fuc():
     return {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(256, scale=(0.8, 1.0)),
@@ -180,9 +180,9 @@ def train_resnet(args, model_size='resnet18', lr=0.003, freeze = False):
     patience = 10
     
 
-    train_transform = transforms()['train']
+    train_transform = transforms_fuc()['train']
 
-    test_transform = transforms()['test']
+    test_transform = transforms_fuc()['test']
     
     data_folder = os.listdir(args.data_dir)
     data_name_list_train = []
