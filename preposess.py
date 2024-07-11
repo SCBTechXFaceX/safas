@@ -41,13 +41,13 @@ def crop_and_save_face(image_path, output_dir, confidence_threshold=0.8, extend_
 
 def save_to_junk(image, junk_folder_path, prefix, output_dir, image_path):
     os.makedirs(junk_folder_path, exist_ok=True)
-    junk_output_path = f"{junk_folder_path}/{prefix}_{output_dir}_{os.path.basename(image_path).split('.')[0]}.png"
+    junk_output_path = f"{junk_folder_path}/{prefix}_{output_dir}_{os.path.basename(image_path).split('.')[0]}.jpg"
     plt.imsave(junk_output_path, image)
 
 def save_cropped_face(face, output_dir, image_path):
     output_folder_path = os.path.join('datasets', 'FAS_preprocess', output_dir, os.path.basename(os.path.dirname(image_path)))
     os.makedirs(output_folder_path, exist_ok=True)
-    face_output_path = f"{output_folder_path}/{os.path.basename(image_path).split('.')[0]}.png"
+    face_output_path = f"{output_folder_path}/{os.path.basename(image_path).split('.')[0]}.jpg"
     plt.imsave(face_output_path, face)
 
 def process_image(args, folder_path, folder_target, file_path):
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     summary_text = ""
     for folder_target in folder_contents:
         df = pd.read_csv(os.path.join(folder_path, folder_target, 'label.csv'))
-        results = Parallel(n_jobs=3)(delayed(process_image)(args, folder_path, folder_target, df.iloc[i, 0]) for i in tqdm(range(len(df)), desc="Processing images"))
+        results = Parallel(n_jobs=4)(delayed(process_image)(args, folder_path, folder_target, df.iloc[i, 0]) for i in tqdm(range(len(df)), desc="Processing images"))
 
         new_df = pd.DataFrame()
         image_found_number = sum(1 for result in results if result[0])
